@@ -32,16 +32,35 @@ def load_model():
     dtype = torch.float16 if use_gpu else torch.float32
     
     # Load model with memory-efficient settings
-    classifier = pipeline(
-        "zero-shot-classification",
-        model="MoritzLaurer/deberta-v3-large-zeroshot-v2.0",
-        device=device,
-        torch_dtype=dtype,
-        model_kwargs={
-            "low_cpu_mem_usage": True,
-            "torch_dtype": dtype,
-        }
-    )
+    # Start with the simplest configuration that works across all versions
+    try:
+        # First try: basic pipeline without any optional parameters
+        classifier = pipeline(
+            "zero-shot-classification",
+            model="MoritzLaurer/deberta-v3-large-zeroshot-v2.0"
+        )
+    except Exception as e:
+        # If basic fails, try with device specification
+        try:
+            classifier = pipeline(
+                "zero-shot-classification",
+                model="MoritzLaurer/deberta-v3-large-zeroshot-v2.0",
+                device=device
+            )
+        except Exception as e2:
+            # If device specification fails, try with GPU float16
+            if use_gpu:
+                try:
+                    classifier = pipeline(
+                        "zero-shot-classification",
+                        model="MoritzLaurer/deberta-v3-large-zeroshot-v2.0",
+                        device=device,
+                        torch_dtype=torch.float16
+                    )
+                except Exception as e3:
+                    raise ValueError(f"Failed to load model after multiple attempts. Last error: {str(e3)}")
+            else:
+                raise ValueError(f"Failed to load model. Error: {str(e2)}")
     
     # Additional memory cleanup
     gc.collect()
@@ -50,7 +69,12 @@ def load_model():
     
     return classifier
 
-classifier = load_model()
+# Load model with error handling
+try:
+    classifier = load_model()
+except Exception as e:
+    st.error(f"❌ Failed to load the AI model. Error: {str(e)}")
+    st.stop()
 
 # --- Candidate Labels ---
 candidate_labels = [
