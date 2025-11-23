@@ -2,7 +2,7 @@ import streamlit as st
 from transformers import pipeline
 import torch
 
-# --- 1. Load Zero-Shot Classifier ---
+# --- Load Zero-Shot Model ---
 @st.cache_resource(show_spinner=True)
 def load_model():
     classifier = pipeline(
@@ -15,22 +15,22 @@ def load_model():
 
 classifier = load_model()
 
-# --- 2. Candidate Labels ---
+# --- Candidate Labels ---
 candidate_labels = [
-    "shopping for software or tools",           # High Intent
-    "hiring employees or growing team",         # Medium Intent
-    "discussing HR trends or articles",         # Low Intent
-    "off-topic, greeting, hate, spam, personal" # No Intent
+    "shopping for software or tools",           
+    "hiring employees or growing team",         
+    "discussing HR trends or articles",         
+    "off-topic, greeting, hate, spam, personal"
 ]
 
-# --- 3. Streamlit UI ---
+# --- UI ---
 st.title("🔥 Ultimate Intent Classifier 2025")
 st.markdown("""
 Powered by **DeBERTa-v3 zero-shot** model.  
-Type your text below or select an example from the dropdown to see the predicted intent.
+Type your text or select a predefined example to see the predicted intent.
 """)
 
-# Example sentences (15+)
+# Predefined examples
 examples = [
     "Looking for HR automation tools",
     "Hiring an HR Manager",
@@ -49,33 +49,36 @@ examples = [
     "Searching for employee engagement platforms"
 ]
 
-# --- Input ---
-text_input = st.text_area("Type your text here:")
-selected_example = st.selectbox("Or choose an example:", ["--None--"] + examples)
+# --- Single Input Box ---
+text_input = st.text_area("Type your text here (or select an example below):", height=120)
 
-# Use either input or selected example
-text_to_predict = text_input.strip() if text_input.strip() else None
-if selected_example != "--None--":
-    text_to_predict = selected_example
+# Dropdown to select example and copy to text_input
+selected_example = st.selectbox("Or select an example to fill above:", ["--None--"] + examples)
+if selected_example != "--None--" and selected_example != text_input:
+    text_input = selected_example
 
-# --- Prediction ---
-if text_to_predict:
-    result = classifier(text_to_predict, candidate_labels, multi_label=False)
-    top_label = result["labels"][0]
-    score = result["scores"][0]
+# Predict button
+if st.button("Predict"):
+    if text_input.strip():
+        # Prediction
+        result = classifier(text_input.strip(), candidate_labels, multi_label=False)
+        top_label = result["labels"][0]
+        score = result["scores"][0]
 
-    # Map to our categories
-    if "shopping" in top_label:
-        icon, tag = "HIGH", "HIGH INTENT"
-    elif "hiring" in top_label:
-        icon, tag = "MEDIUM", "MEDIUM INTENT"
-    elif "discussing" in top_label:
-        icon, tag = "LOW", "LOW INTENT"
+        # Map to HIGH/MEDIUM/LOW/NO
+        if "shopping" in top_label:
+            icon, tag = "HIGH", "HIGH INTENT"
+        elif "hiring" in top_label:
+            icon, tag = "MEDIUM", "MEDIUM INTENT"
+        elif "discussing" in top_label:
+            icon, tag = "LOW", "LOW INTENT"
+        else:
+            icon, tag = "NONE", "NO INTENT"
+
+        # Display result
+        st.markdown("### Prediction Result")
+        st.write(f"**Intent:** {tag} ({icon})")
+        st.write(f"**Confidence:** {score:.1%}")
+        st.write(f"**Matched Label:** {top_label}")
     else:
-        icon, tag = "NONE", "NO INTENT"
-
-    # Display
-    st.markdown("### Prediction Result")
-    st.write(f"**Intent:** {tag} ({icon})")
-    st.write(f"**Confidence:** {score:.1%}")
-    st.write(f"**Matched Label:** {top_label}")
+        st.warning("Please type a sentence or select an example to predict.")
