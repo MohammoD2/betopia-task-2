@@ -1,0 +1,21 @@
+[server]
+# Reduce memory usage by limiting file watcher
+fileWatcherType = "none"
+# Enable headless mode for better resource management
+headless = true
+
+[runner]
+# Fast reruns to reduce memory accumulation
+fastReruns = true
+
+[browser]
+# Disable automatic browser opening to save resources
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#FF4B4B"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F2F6"
+textColor = "#262730"
+font = "sans serif"
+
